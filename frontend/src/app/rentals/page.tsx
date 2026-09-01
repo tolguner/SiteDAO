@@ -40,16 +40,24 @@ export default function RentalsPage() {
   const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
   const isConnected = zkLoginConnected || !!account?.address;
 
-  // Store'dan verileri al
-  const getRentalListings = useSiteStore((state) => state.getRentalListings);
+  // Ham dizilere abone oluyoruz; store'un getRentalListings yardımcısı her çağrıda yeni
+  // bir dizi döndürdüğü için doğrudan kullanılırsa aşağıdaki useMemo'lar hiç işe yaramaz.
+  const rentalListings = useSiteStore((state) => state.rentalListings);
+  const apartments = useSiteStore((state) => state.apartments);
 
   // Hydration için
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Store'dan aktif kiralık ilanları al
-  const storeListings = mounted ? getRentalListings(true) : [];
+  // Aktif kiralık ilanlar: ilanı açık olan ve dairesi dolu olmayanlar
+  const storeListings = useMemo(() => {
+    if (!mounted) return [];
+    return rentalListings.filter((l) => {
+      const apartment = apartments.find((a) => a.id === l.apartmentId);
+      return l.isActive && !apartment?.isRented;
+    });
+  }, [mounted, rentalListings, apartments]);
 
   // Blok listesi
   const blocks = useMemo(() => {
