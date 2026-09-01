@@ -96,8 +96,7 @@ SiteDAO/
 │       │   ├── about/            # Hakkında
 │       │   └── api/
 │       │       ├── upload-ipfs/          # Pinata'ya fatura yükleme
-│       │       ├── zklogin/salt/         # zkLogin salt servisi
-│       │       └── auth/callback/google/ # zkLogin OAuth dönüşü
+│       │       └── zklogin/salt/         # zkLogin salt servisi
 │       ├── components/
 │       │   ├── modals/           # İşlem pencereleri
 │       │   ├── governance/       # Gider bileşenleri
@@ -158,9 +157,12 @@ npm run dev
 ```
 
 Uygulama **http://localhost:3010** adresinde açılır. zkLogin kullanacaksanız Google
-Cloud Console'da yetkili yönlendirme adresi olarak
-`http://localhost:3010/api/auth/callback/google` kayıtlı olmalıdır; aksi halde Google
-`redirect_uri_mismatch` döndürür.
+Cloud Console'da hem yetkili JavaScript kaynağı hem de yetkili yönlendirme adresi
+olarak **`http://localhost:3010`** kayıtlı olmalıdır — bir alt yol değil, kök adresin
+kendisi. zkLogin implicit flow kullandığı için Google kimlik jetonunu URL
+fragment'ında döndürür ve jetonu ana sayfadaki sağlayıcı okur; sunucu tarafı bir uç
+nokta fragment'ı göremez. Adres birebir eşleşmezse Google `redirect_uri_mismatch`
+döndürür.
 
 `.env.local` içinde doldurulması gerekenler:
 

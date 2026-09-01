@@ -21,11 +21,6 @@ export const ZKLOGIN_CONFIG = {
 
   // Epoch'ların geçerlilik süresi (maksimum 2 epoch ilerisi desteklenir)
   maxEpochOffset: 2,
-  
-  // Redirect URL'leri
-  redirectUrl: typeof window !== "undefined" 
-    ? `${window.location.origin}/api/auth/callback/google`
-    : "",
 };
 
 // Google OAuth için nonce oluşturma
