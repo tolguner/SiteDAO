@@ -11,10 +11,9 @@ Proje tanıtım sunumu: [`docs/SiteDAO-sunum.pdf`](docs/SiteDAO-sunum.pdf)
 
 ## Durum
 
-Dönem projesi olarak teslim edildi. Move sözleşmeleri yazıldı, 25 birim testinin tamamını
-geçiyor ve Sui testnet'ine yayınlandı; arayüz tamamlandı ve derleniyor. Aşağıdaki tabloda
-işaretlenen akışlar zincir üzerinde çalışır; geri kalanı tarayıcıdaki yerel demo verisi
-üzerinden yürür.
+Dönem projesi olarak teslim edildi. Move sözleşmeleri 25 birim testinin tamamını geçiyor
+ve Sui testnet'ine yayınlandı; arayüz tamamlandı, tüm site durumunu zincirden okuyor ve
+aşağıdaki tablodaki işlemleri zincire yazıyor.
 
 ### Testnet yayını
 
@@ -31,17 +30,23 @@ Ayrıntılar `move/site_dao/Published.toml` içindedir. `AdminCap`, `GovernanceA
 
 Akışlar testnet üzerinde uçtan uca çalıştırılarak doğrulanmıştır: daire mint, aidat
 ödeme, Kiosk'a kilitleme, ilan iptaliyle kilit çözme, kiralama talebi, onay, kiralama
-ve oylama. Bu doğrulama, yalnızca ölü kod temizliğiyle ayrılan bir önceki yayın
-üzerinde yapılmıştır; yukarıdaki paket üzerinde daire mint işlemi tekrar doğrulanmış,
-kalan akışlar test gazı yetersizliği nedeniyle yinelenmemiştir.
+ve oylama. Zincirden okuma katmanı da bu canlı veriye karşı doğrulanmıştır.
+
+Bu doğrulama, yalnızca ölü kod temizliğiyle ayrılan bir önceki yayın üzerinde
+yapılmıştır; yukarıdaki paket üzerinde daire mint işlemi tekrar doğrulanmış, kalan
+akışlar test gazı yetersizliği nedeniyle yinelenmemiştir.
 
 ### Zincir mi, demo mu?
 
-Arayüz, zincir üzerindeki durumun bir kopyasını tarayıcıda `zustand` + `localStorage`
-üzerinde tutar (`frontend/src/lib/store`). Sözleşme adresleri `.env.local` içinde
-tanımlıysa aşağıdaki akışlar önce zincire yazılmayı dener, ardından yerel kopyayı
-günceller. Zincire yazma başarısız olursa veya adresler tanımsızsa işlem **demo moduna**
-düşer ve yalnızca yerel veri güncellenir.
+Sözleşme adresleri `.env.local` içinde tanımlıysa uygulama **zincir modunda** çalışır:
+site durumu (daireler, kiracı kartları, ilanlar, talepler, teklifler, rutin giderler ve
+hazine) doğrudan zincirden okunur ve 15 saniyede bir tazelenir. Tarayıcıdaki `zustand`
+store yalnızca bu okumanın önbelleğidir. Adresler tanımsızsa uygulama kurgusal demo
+verisiyle açılır ve zincire yazan işlemler **demo moduna** düşer.
+
+Zincir okuma katmanı `frontend/src/lib/chain/read.ts` içindedir; sahiplik, kiralama
+durumu ve oy sayıları olay kayıtları ile paylaşılan nesnelerin dinamik alanlarından
+üretilir.
 
 | Akış | Zincire yazılır | Notlar |
 |---|---|---|
@@ -59,11 +64,10 @@ düşer ve yalnızca yerel veri güncellenir.
 | Rutin giderler | evet | `governance::record_routine_expense` — hazineden ödenir, fatura IPFS'e yüklenir |
 | İlan iptali | evet | `rent_market::cancel_listing` — kilitli daire ev sahibine geri döner |
 
-Uygulama ilk açıldığında 3 blok / 9 daireden oluşan **kurgusal** bir demo sitesi
-("Green Garden Evleri") ile gelir. Demo verisindeki tüm e-postalar, isimler ve cüzdan
-adresleri uydurmadır; gerçek bir kişiyi veya cüzdanı temsil etmez. Demo verisindeki
-kayıtların zincir karşılığı olmadığı için bunlar üzerinden yapılan işlemler demo modunda
-kalır; zincire yazılan işlemler uygulama içinde oluşturulan yeni kayıtlarla yürür.
+Sözleşme adresleri tanımlı değilken uygulama, 3 blok / 9 daireden oluşan **kurgusal**
+bir demo sitesiyle ("Green Garden Evleri") açılır. Demo verisindeki tüm e-postalar,
+isimler ve cüzdan adresleri uydurmadır; gerçek bir kişiyi veya cüzdanı temsil etmez.
+Zincir modunda bu veri kullanılmaz, yerini zincirden okunan gerçek durum alır.
 
 ## Proje Yapısı
 
@@ -90,6 +94,7 @@ SiteDAO/
 │       │   ├── about/            # Hakkında
 │       │   └── api/
 │       │       ├── upload-ipfs/          # Pinata'ya fatura yükleme
+│       │       ├── zklogin/salt/         # zkLogin salt servisi
 │       │       └── auth/callback/google/ # zkLogin OAuth dönüşü
 │       ├── components/
 │       │   ├── modals/           # İşlem pencereleri
@@ -97,7 +102,8 @@ SiteDAO/
 │       │   ├── providers/        # Sui ve zkLogin sağlayıcıları
 │       │   └── layout/
 │       └── lib/
-│           ├── store/            # Yerel demo veri katmanı (zustand)
+│           ├── chain/            # Zincirden durum okuma katmanı
+│           ├── store/            # Zincirden hidrate edilen durum önbelleği (zustand)
 │           ├── zklogin/          # Google ile zkLogin akışı
 │           └── constants.ts      # Ortam değişkenleri ve sabitler
 └── scripts/deploy.ts         # Sözleşmeleri yayınlar, .env.local'i günceller
@@ -160,6 +166,8 @@ npm run dev
 | `NEXT_PUBLIC_GOVERNANCE_ADMIN_CAP_ID` | Deploy edene gönderilen `GovernanceAdminCap` |
 | `NEXT_PUBLIC_APARTMENT_POLICY_ID` | Paylaşılan `TransferPolicy<Apartment>` — Kiosk kilidi için zorunlu |
 | `NEXT_PUBLIC_NETWORK` | `mainnet` / `testnet` / `devnet` / `localnet` |
+| `NEXT_PUBLIC_SUI_RPC_URL` | RPC uç noktası — genel fullnode'lar tarayıcıdan CORS'a izin vermiyor |
+| `ZKLOGIN_SALT_SECRET` | Salt servisi sırrı (sunucu tarafı, asla istemciye gitmez) |
 | `NEXT_PUBLIC_ADMIN_EMAILS` | Yönetici e-postaları, virgülle ayrılmış |
 | `PINATA_API_KEY` / `PINATA_SECRET_KEY` | Fatura yükleme (boşsa demo hash üretilir) |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | zkLogin için Google OAuth istemcisi |
@@ -209,9 +217,19 @@ alıcıya aktarır.
 - **zkLogin** — Google hesabıyla giriş yapılır, Mysten prover servisi üzerinden ZK kanıtı
   üretilir ve türetilen adresle işlem imzalanır.
 
-zkLogin'de kullanılan salt, gösterim amaçlı basit bir yerel hash ile üretilir
-(`frontend/src/lib/zklogin/proof.ts`). Gerçek bir kurulumda ayrı bir salt servisi
-kullanılmalıdır.
+### Salt servisi
+
+zkLogin'de salt, kullanıcının Google kimliği ile Sui adresi arasındaki bağı gizler:
+aynı hesap hep aynı adresi almalı, ama salt'ı bilmeyen biri e-postadan adrese
+gidememelidir. Bu yüzden salt istemcide hesaplanmaz.
+
+`/api/zklogin/salt` uç noktası ([route.ts](frontend/src/app/api/zklogin/salt/route.ts))
+önce JWT'yi Google'ın JWKS'ine karşı doğrular — aksi halde herkes istediği `sub` için
+salt isteyip başkasının adresini türetebilirdi — sonra
+`HMAC-SHA256(ZKLOGIN_SALT_SECRET, iss|aud|sub)` değerinin ilk 128 bitini döndürür.
+Deterministiktir, sunucu sırrı olmadan hesaplanamaz ve zkLogin'in beklediği aralıktadır.
+
+`ZKLOGIN_SALT_SECRET` değişirse tüm kullanıcıların adresi değişir.
 
 ## Tasarım Notları
 
@@ -240,25 +258,31 @@ komisyon veya kilit süresi gibi kurallar `TransferPolicyCap` ile eklenebilir.
 doğrudan geçiremez; `governance::vote_as_owner_in_kiosk` `KioskOwnerCap` ile daireyi
 ödünç alıp oy kullanmayı sağlar.
 
+**Zincirden okuma.** Uygulama zincir modunda hiçbir veriyi kendi uydurmaz: daireler
+`ApartmentMinted` olaylarından bulunup güncel sahipleriyle okunur, kiralama ilanları ve
+aktif kiralamalar `RentalRegistry`'nin tablolarından, teklifler `ProposalRegistry`
+üzerinden, satılık ilanlar ve rutin giderler ise olay kayıtlarından üretilir. Kiraya
+çıkarılan daire Kiosk'ta kilitli olduğu için adres sahibi görünmez; bu durumda sahip
+bilgisi ilandan okunur.
+
 **Talep–onay akışı.** Kiralama tek adımda yapılmaz: kiracı adayı `request_rental` ile
 paylaşılan bir `RentalRequest` açar, ilan sahibi `approve_rental_request` ile onaylar ve
 kiralama ancak onaylı talep üzerinden tamamlanabilir. Talep tamamlandığında kapanır,
 aynı talep ikinci kez kullanılamaz.
 
-## Eksikler
+## Bilinçli Sınırlar
 
-- Arayüz zincirdeki durumu okumak yerine yerel bir kopya tutuyor; iki taraf ayrışabilir.
-  Uygulama açıldığında gelen demo kayıtlarının zincir karşılığı yoktur.
-- E-posta → cüzdan eşleştirmesi demo amaçlı sabit bir haritadan okunuyor; sahiplik
-  zincirden okunmuyor.
-- zkLogin salt'ı basit bir yerel hash ile üretiliyor, ayrı bir salt servisi yok.
-- `TransferPolicy<Apartment>` kuralsız oluşturuluyor; komisyon, kilit süresi gibi kurallar
-  tanımlı değil.
-- Süresi dolan TenantPass kiracı tarafından elle yakılıyor; otomatik bir süreç yok.
-- Struct düzenleri değiştiği için sözleşmeler upgrade edilemedi, yeni paket olarak
-  yayınlandı; önceki paketin nesneleri (eski hazine ve kayıtlar) artık kullanılmıyor.
-- Uygulamanın ilk açılışta gösterdiği demo kayıtları bu yayınla ilişkili değildir;
-  zincire yazan işlemler uygulama içinde oluşturulan yeni kayıtlarla yürür.
+Aşağıdakiler eksik değil, kapsam kararıdır:
+
+- **`TransferPolicy<Apartment>` kuralsız oluşturulur.** Komisyon veya kilit süresi gibi
+  kurallar tanımlı değildir; site yönetimi bağlamında bir telif payı gerekmez. İhtiyaç
+  halinde `TransferPolicyCap` ile sonradan eklenebilir.
+- **Süresi dolan TenantPass elle yakılır.** Sui'de zamanlanmış iş yoktur; bir nesnenin
+  kendiliğinden yok olması mümkün değildir. Kart süresi dolduğunda kiracı
+  `burn_expired_tenant_pass` ile kartı yakar ve daire yeniden kiralanabilir hale gelir.
+- **Kiracı adayının iletişim bilgileri zincirde tutulmaz.** Ad, e-posta ve telefon
+  kişisel veridir ve herkese açık bir deftere yazılmaz; zincirde yalnızca talep sahibinin
+  adresi, süre ve onay durumu bulunur.
 
 ## Teknolojiler
 

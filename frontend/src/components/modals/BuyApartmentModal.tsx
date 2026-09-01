@@ -4,7 +4,7 @@ import { Coins, Building2, X, Loader2, AlertTriangle, CheckCircle2 } from "lucid
 import { useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { getAddressFromEmail } from "@/lib/store";
+
 import { PACKAGE_ID } from "@/lib/constants";
 
 interface BuyApartmentModalProps {
@@ -26,8 +26,7 @@ export function BuyApartmentModal({ listing, onClose, onSuccess }: BuyApartmentM
         isConnected: zkLoginConnected,
         signAndExecuteTransaction: zkLoginSignAndExecute,
     } = useZkLogin();
-    const mappedAddress = email ? getAddressFromEmail(email) : null;
-    const connectedAddress = account?.address || mappedAddress || address;
+    const connectedAddress = account?.address || address;
 
     const apartment = getApartment(listing.apartmentId);
 

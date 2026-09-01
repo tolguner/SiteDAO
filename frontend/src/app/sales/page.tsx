@@ -2,7 +2,7 @@
 
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { useSiteStore, type SaleListing, getAddressFromEmail } from "@/lib/store";
+import { useSiteStore, type SaleListing } from "@/lib/store";
 import { useState, useEffect } from "react";
 import { Building2, Coins, Tag, Search, Filter } from "lucide-react";
 import { BuyApartmentModal } from "@/components/modals/BuyApartmentModal";
@@ -97,8 +97,7 @@ export default function SalesPage() {
 
     const account = useCurrentAccount();
     const { address, email } = useZkLogin();
-    const mappedAddress = email ? getAddressFromEmail(email) : null;
-    const connectedAddress = account?.address || mappedAddress || address;
+    const connectedAddress = account?.address || address;
 
     useEffect(() => {
         setMounted(true);

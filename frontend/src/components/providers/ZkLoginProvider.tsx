@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { Transaction } from "@mysten/sui/transactions";
-import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
+import { SuiClient } from "@mysten/sui/client";
 import { getZkLoginSignature } from "@mysten/sui/zklogin";
 import {
   createEphemeralKeyPair,
@@ -15,7 +15,7 @@ import {
   ZkLoginSession,
   OAUTH_PROVIDERS,
 } from "@/lib/zklogin";
-import { NETWORK } from "@/lib/constants";
+import { SUI_RPC_URL } from "@/lib/constants";
 
 // zkLogin context tipi
 interface ZkLoginContextType {
@@ -227,7 +227,7 @@ export function ZkLoginProvider({ children }: ZkLoginProviderProps) {
       throw new Error("Not authenticated with zkLogin");
     }
     
-    const suiClient = new SuiClient({ url: getFullnodeUrl(NETWORK) });
+    const suiClient = new SuiClient({ url: SUI_RPC_URL });
     
     // Transaction'ı build et
     const txBytes = await transaction.build({

@@ -6,7 +6,7 @@ import { useSignAndExecuteTransaction, useCurrentAccount, useSuiClientQuery, use
 import { Transaction } from "@mysten/sui/transactions";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
 import { PACKAGE_ID, RENTAL_REGISTRY_ID, CLOCK_OBJECT_ID } from "@/lib/constants";
-import { getAddressFromEmail, useSiteStore } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 
 interface RentalListing {
   id: string;
@@ -36,9 +36,7 @@ export function RentApartmentModal({ listing, onClose, onSuccess }: RentApartmen
     signAndExecuteTransaction: zkLoginSignAndExecute
   } = useZkLogin();
 
-  // E-posta bazlı adres eşleştirmesi (demo için)
-  const mappedAddress = zkLoginEmail ? getAddressFromEmail(zkLoginEmail) : null;
-  const connectedAddress = mappedAddress || (zkLoginConnected ? zkLoginAddress : account?.address);
+  const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
 
   // zkLogin veya wallet'a göre doğru sign fonksiyonunu seç
   const signAndExecute = async (params: { transaction: Transaction }) => {

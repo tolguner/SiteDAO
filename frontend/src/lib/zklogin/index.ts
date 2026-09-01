@@ -11,7 +11,7 @@ export {
 } from "./ephemeral";
 export { 
   decodeJwt, 
-  computeSalt, 
+  fetchSalt,
   deriveZkLoginAddress, 
   generateZkProof,
   processJwt,

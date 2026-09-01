@@ -1,7 +1,7 @@
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { generateNonce, generateRandomness, getExtendedEphemeralPublicKey } from "@mysten/sui/zklogin";
-import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
-import { NETWORK } from "@/lib/constants";
+import { SuiClient } from "@mysten/sui/client";
+import { SUI_RPC_URL } from "@/lib/constants";
 
 // Ephemeral keypair ve randomness için tip
 export interface EphemeralData {
@@ -51,7 +51,7 @@ export async function createEphemeralKeyPair(): Promise<{
   expiresAt: number;
 }> {
   // Sui client ile mevcut epoch'u al
-  const suiClient = new SuiClient({ url: getFullnodeUrl(NETWORK) });
+  const suiClient = new SuiClient({ url: SUI_RPC_URL });
   const { epoch } = await suiClient.getLatestSuiSystemState();
   
   // Maksimum epoch (2 epoch sonrasına kadar geçerli)

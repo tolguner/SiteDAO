@@ -4,11 +4,18 @@ import Link from "next/link";
 import { Building2, Trees, Users, Shield, Phone, MapPin, Mail, ChevronDown, Waves, Car, Dumbbell, Coffee } from "lucide-react";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useSiteStore } from "@/lib/store";
+import { MONTHLY_DUES_SUI } from "@/lib/constants";
 
 export default function Home() {
   const { isConnected: zkLoginConnected } = useZkLogin();
   const account = useCurrentAccount();
   const isConnected = zkLoginConnected || !!account?.address;
+
+  // Özet rakamlar zincirden hidrate edilen store'dan okunur
+  const apartments = useSiteStore((state) => state.apartments);
+  const tenantPasses = useSiteStore((state) => state.tenantPasses);
+  const treasury = useSiteStore((state) => state.treasury);
 
   return (
     <div className="-mt-8 -mx-4 -mb-8">
@@ -201,20 +208,22 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-3 border-b">
-                    <span className="text-muted-foreground">Toplam Daire</span>
-                    <span className="font-bold">9</span>
+                    <span className="text-muted-foreground">Zincirdeki Daire</span>
+                    <span className="font-bold">{apartments.length}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b">
-                    <span className="text-muted-foreground">Aktif Kiracı</span>
-                    <span className="font-bold">3</span>
+                    <span className="text-muted-foreground">Aktif Kiralama</span>
+                    <span className="font-bold">{tenantPasses.length}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b">
                     <span className="text-muted-foreground">Aylık Aidat</span>
-                    <span className="font-bold text-sui">0.1 SUI</span>
+                    <span className="font-bold text-sui">{MONTHLY_DUES_SUI} SUI</span>
                   </div>
                   <div className="flex justify-between items-center py-3">
                     <span className="text-muted-foreground">Hazine</span>
-                    <span className="font-bold text-green-500">2.5 SUI</span>
+                    <span className="font-bold text-green-500">
+                      {(treasury.balance / 1_000_000_000).toFixed(2)} SUI
+                    </span>
                   </div>
                 </div>
               </div>

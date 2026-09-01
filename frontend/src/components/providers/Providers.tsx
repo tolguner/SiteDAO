@@ -1,20 +1,19 @@
 "use client";
 
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
-import { getFullnodeUrl } from "@mysten/sui/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import "@mysten/dapp-kit/dist/index.css";
 import { ZkLoginProvider } from "./ZkLoginProvider";
-import { NETWORK } from "@/lib/constants";
+import { ChainSyncProvider } from "./ChainSyncProvider";
+import { NETWORK, SUI_RPC_URL } from "@/lib/constants";
 
 // Ağ yapılandırması
+// Aktif ağ SUI_RPC_URL üzerinden çözülür; böylece JSON-RPC sunan ve tarayıcıdan
+// erişilebilen bir uç nokta tanımlanabilir.
 const { networkConfig } = createNetworkConfig({
-  localnet: { url: getFullnodeUrl("localnet") },
-  devnet: { url: getFullnodeUrl("devnet") },
-  testnet: { url: getFullnodeUrl("testnet") },
-  mainnet: { url: getFullnodeUrl("mainnet") },
-});
+  [NETWORK]: { url: SUI_RPC_URL },
+} as Record<string, { url: string }>);
 
 const queryClient = new QueryClient();
 
@@ -25,7 +24,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SuiClientProvider networks={networkConfig} defaultNetwork={NETWORK}>
           <WalletProvider autoConnect>
             <ZkLoginProvider>
-              {children}
+              <ChainSyncProvider>
+                {children}
+              </ChainSyncProvider>
             </ZkLoginProvider>
           </WalletProvider>
         </SuiClientProvider>

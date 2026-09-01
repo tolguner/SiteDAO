@@ -1,6 +1,8 @@
 // SiteDAO Contract Constants
 // Bu değerler deploy sonrası güncellenmelidir
 
+import { getFullnodeUrl } from "@mysten/sui/client";
+
 export const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID || "";
 export const TREASURY_ID = process.env.NEXT_PUBLIC_TREASURY_ID || "";
 export const RENTAL_REGISTRY_ID = process.env.NEXT_PUBLIC_RENTAL_REGISTRY_ID || "";
@@ -32,6 +34,14 @@ export const ADMIN_EMAILS: string[] = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "
 // E-postanın yönetici listesinde olup olmadığını büyük/küçük harf duyarsız kontrol eder
 export const isAdminEmail = (email?: string | null): boolean =>
   !!email && ADMIN_EMAILS.includes(email.trim().toLowerCase());
+
+/// Kullanılacak RPC uç noktası
+///
+/// Sui'nin genel fullnode'ları JSON-RPC'yi kaldırdı ve tarayıcıdan CORS'a izin
+/// vermiyor; bu yüzden JSON-RPC sunan bir uç nokta NEXT_PUBLIC_SUI_RPC_URL ile
+/// verilebilir. Tanımsızsa varsayılan fullnode kullanılır.
+export const SUI_RPC_URL =
+  process.env.NEXT_PUBLIC_SUI_RPC_URL?.trim() || getFullnodeUrl(NETWORK);
 
 // Sui Network URLs
 export const SUI_NETWORK_URLS = {

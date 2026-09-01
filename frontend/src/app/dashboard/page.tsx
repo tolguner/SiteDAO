@@ -13,7 +13,7 @@ import { TenantDetailsModal } from "@/components/modals/TenantDetailsModal";
 import { ListForSaleModal } from "@/components/modals/ListForSaleModal";
 import { MONTHLY_DUES_SUI, PACKAGE_ID } from "@/lib/constants";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { useSiteStore, type Apartment, type TenantPass, type RentalRequest, getAddressFromEmail, type ActivityLog } from "@/lib/store";
+import { useSiteStore, type Apartment, type TenantPass, type RentalRequest, type ActivityLog } from "@/lib/store";
 import { InvoiceModal } from "@/components/modals/InvoiceModal";
 
 // Helper function for dues calculation
@@ -678,9 +678,7 @@ export default function DashboardPage() {
   const getUserProfile = useSiteStore((state) => state.getUserProfile);
   const activityLogs = useSiteStore((state) => state.activityLogs);
 
-  // ... (existing queries)
-  const mappedAddress = email ? getAddressFromEmail(email) : null;
-  const connectedAddress = account?.address || mappedAddress || address;
+  const connectedAddress = account?.address || address;
 
   // Filter financial history
   const financialHistory = connectedAddress ? activityLogs.filter(log => {

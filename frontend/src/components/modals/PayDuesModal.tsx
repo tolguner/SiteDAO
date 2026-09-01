@@ -6,7 +6,7 @@ import { useSignAndExecuteTransaction, useSuiClient, useCurrentAccount } from "@
 import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, TREASURY_ID, CLOCK_OBJECT_ID, MONTHLY_DUES_SUI } from "@/lib/constants";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { getAddressFromEmail, useSiteStore } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 
 interface PayDuesModalProps {
   apartment: {
@@ -31,9 +31,7 @@ export function PayDuesModal({ apartment, onClose }: PayDuesModalProps) {
     signAndExecuteTransaction: zkLoginSignAndExecute
   } = useZkLogin();
 
-  // E-posta bazlı adres eşleştirmesi (demo için)
-  const mappedAddress = zkLoginEmail ? getAddressFromEmail(zkLoginEmail) : null;
-  const connectedAddress = mappedAddress || (zkLoginConnected ? zkLoginAddress : account?.address);
+  const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
 
   // zkLogin veya wallet'a göre doğru sign fonksiyonunu seç
   const signAndExecute = async (params: { transaction: Transaction }) => {

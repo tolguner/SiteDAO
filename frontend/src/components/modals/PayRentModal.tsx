@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { useSignAndExecuteTransaction, useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { getAddressFromEmail, useSiteStore } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 import { TenantPass } from "@/lib/store/types";
 import { PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/constants";
 
@@ -27,8 +27,7 @@ export function PayRentModal({ pass, onClose }: PayRentModalProps) {
         signAndExecuteTransaction: zkLoginSignAndExecute
     } = useZkLogin();
 
-    const mappedAddress = zkLoginEmail ? getAddressFromEmail(zkLoginEmail) : null;
-    const connectedAddress = mappedAddress || (zkLoginConnected ? zkLoginAddress : account?.address);
+    const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
 
     // Store'dan payRent fonksiyonu
     const payRent = useSiteStore((state) => state.payRent);

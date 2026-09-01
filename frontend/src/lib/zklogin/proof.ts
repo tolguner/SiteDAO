@@ -36,22 +36,27 @@ export function decodeJwt(jwt: string): JwtClaims {
   return payload as JwtClaims;
 }
 
-// Salt hesapla (basit versiyon - production'da salt service kullanılmalı)
-export function computeSalt(sub: string, email?: string): string {
-  // Basit bir hash - production'da daha güvenli bir yöntem kullanın
-  // Gerçek uygulamada salt service'den alınmalı
-  const input = `${sub}_${email || ""}_sitedao_v1`;
-  
-  // Simple hash for demo purposes
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+// Salt'ı salt servisinden al
+//
+// Salt istemcide hesaplanamaz: hesaplanabilseydi, e-postayı bilen herkes kullanıcının
+// Sui adresini türetebilirdi. Servis JWT'yi Google'ın imzasına karşı doğrular ve
+// sunucudaki sır ile deterministik bir salt üretir.
+export async function fetchSalt(jwt: string): Promise<string> {
+  const response = await fetch("/api/zklogin/salt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jwt }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.error || "Salt servisi yanıt vermedi");
   }
-  
-  // BigInt olarak döndür
-  return BigInt(Math.abs(hash)).toString();
+
+  const { salt } = await response.json();
+  if (!salt) throw new Error("Salt servisi boş yanıt döndü");
+
+  return salt as string;
 }
 
 // zkLogin adresi türet
@@ -113,7 +118,7 @@ export async function processJwt(jwt: string): Promise<{
   }
   
   // Salt hesapla
-  const salt = computeSalt(claims.sub, claims.email);
+  const salt = await fetchSalt(jwt);
   
   // zkLogin adresi türet
   const address = deriveZkLoginAddress(jwt, salt);

@@ -12,7 +12,7 @@ import {
   VOTING_PERIOD_MS,
 } from "@/lib/constants";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { useSiteStore, getAddressFromEmail } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 
 interface CreateProposalModalProps {
   onClose: () => void;
@@ -33,9 +33,7 @@ export function CreateProposalModal({ onClose, onSuccess }: CreateProposalModalP
     signAndExecuteTransaction: zkLoginSignAndExecute
   } = useZkLogin();
 
-  // E-posta bazlı adres eşleştirmesi (demo için)
-  const mappedAddress = zkLoginEmail ? getAddressFromEmail(zkLoginEmail) : null;
-  const connectedAddress = mappedAddress || (zkLoginConnected ? zkLoginAddress : account?.address);
+  const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
 
   // zkLogin veya wallet'a göre doğru sign fonksiyonunu seç
   const signAndExecute = async (params: { transaction: Transaction }) => {

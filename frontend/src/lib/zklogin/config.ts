@@ -16,9 +16,9 @@ export const ZKLOGIN_CONFIG = {
   // Prover endpoint - ZK proof oluşturmak için
   proverUrl: process.env.NEXT_PUBLIC_PROVER_URL || "https://prover-dev.mystenlabs.com/v1",
   
-  // Salt service - kullanıcı salt'ını yönetmek için (kendi sunucunuz veya Mysten'in)
-  saltServiceUrl: process.env.NEXT_PUBLIC_SALT_SERVICE_URL || "",
-  
+  // Salt servisi uygulamanın kendi /api/zklogin/salt uç noktasıdır
+  saltServiceUrl: "/api/zklogin/salt",
+
   // Epoch'ların geçerlilik süresi (maksimum 2 epoch ilerisi desteklenir)
   maxEpochOffset: 2,
   

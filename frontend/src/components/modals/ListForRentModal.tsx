@@ -6,7 +6,7 @@ import { useSignAndExecuteTransaction, useCurrentAccount, useSuiClientQuery } fr
 import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, RENTAL_REGISTRY_ID, CLOCK_OBJECT_ID, APARTMENT_POLICY_ID } from "@/lib/constants";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { useSiteStore, getAddressFromEmail } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 
 interface ApartmentData {
   id: string;

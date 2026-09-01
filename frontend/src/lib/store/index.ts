@@ -8,8 +8,6 @@ export {
   useProposals,
   useTreasury,
   useSiteConfig,
-  getAddressFromEmail,
-  EMAIL_TO_ADDRESS_MAP,
 } from "./siteStore";
 
 export type {

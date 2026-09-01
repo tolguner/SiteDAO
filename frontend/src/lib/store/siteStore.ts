@@ -33,26 +33,6 @@ export const DEMO_OWNER_D = "0x0d00000000000000000000000000000000000000000000000
 export const DEMO_TENANT_A = "0x1a00000000000000000000000000000000000000000000000000000000000011";
 export const DEMO_TENANT_B = "0x1b00000000000000000000000000000000000000000000000000000000000012";
 
-// E-posta adresi -> Cüzdan adresi eşleştirmesi (zkLogin kullanıcıları için)
-// Bu harita, zkLogin ile giriş yapan demo kullanıcılarının daireleri görmesini sağlar.
-// Tümü kurgusaldır; gerçek bir kişiyi veya cüzdanı temsil etmez.
-// Gerçek bir kurulumda bu eşleştirme zincir üzerindeki sahiplikten okunmalıdır.
-export const EMAIL_TO_ADDRESS_MAP: Record<string, string> = {
-  // A Blok sahibi (Daire 1, 2, 3)
-  "ayse.demir@example.com": DEMO_OWNER_A,
-  // B Blok sahibi (Daire 1, 2)
-  "mehmet.yilmaz@example.com": DEMO_OWNER_B,
-  // C Blok sahibi (Daire 1, 2)
-  "zeynep.kaya@example.com": DEMO_OWNER_C,
-  // B/C Blok Daire 3 sahibi
-  "can.aydin@example.com": DEMO_OWNER_D,
-};
-
-// E-posta adresinden cüzdan adresini al
-export const getAddressFromEmail = (email: string): string | null => {
-  return EMAIL_TO_ADDRESS_MAP[email.toLowerCase()] || null;
-};
-
 // Site konfigürasyonu
 const SITE_CONFIG: SiteConfig = {
   name: "SiteDAO Rezidans",
@@ -309,6 +289,19 @@ interface SiteStore {
   userProfiles: UserProfileData[];
   config: SiteConfig;
 
+  // Zincirden hidrasyon
+  chainSynced: boolean;
+  hydrateFromChain: (data: {
+    apartments: Apartment[];
+    tenantPasses: TenantPass[];
+    rentalListings: RentalListing[];
+    rentalRequests: RentalRequest[];
+    saleListings: SaleListing[];
+    routineExpenses: RoutineExpense[];
+    proposals: Proposal[];
+    treasury: Treasury;
+  }) => void;
+
   // Daire İşlemleri
   getApartment: (id: string) => Apartment | undefined;
   getApartmentsByOwner: (owner: string) => Apartment[];
@@ -408,6 +401,7 @@ export const useSiteStore = create<SiteStore>()(
   persist(
     (set, get) => ({
       // Başlangıç verileri
+      chainSynced: false,
       apartments: createInitialApartments(),
       tenantPasses: createInitialTenantPasses(),
       rentalListings: [],
@@ -472,6 +466,24 @@ export const useSiteStore = create<SiteStore>()(
       notifications: [],
       userProfiles: [],
       config: SITE_CONFIG,
+
+      // Zincirden hidrasyon
+      //
+      // Sözleşme adresleri tanımlıysa site durumu zincirden okunur ve demo verisinin
+      // yerini alır. Daire, kiracı kartı, ilan, teklif ve hazine artık zincirdeki
+      // gerçeği yansıtır; yerel store yalnızca bunun bir önbelleği olur.
+      hydrateFromChain: (data) =>
+        set({
+          chainSynced: true,
+          apartments: data.apartments,
+          tenantPasses: data.tenantPasses,
+          rentalListings: data.rentalListings,
+          rentalRequests: data.rentalRequests,
+          saleListings: data.saleListings,
+          routineExpenses: data.routineExpenses,
+          proposals: data.proposals,
+          treasury: data.treasury,
+        }),
 
       // Daire İşlemleri
       getApartment: (id) => get().apartments.find((a) => a.id === id),

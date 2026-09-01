@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { useSignAndExecuteTransaction, useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { useZkLogin } from "@/components/providers/ZkLoginProvider";
-import { getAddressFromEmail, useSiteStore } from "@/lib/store";
+import { useSiteStore } from "@/lib/store";
 import { RentalRequest } from "@/lib/store/types";
 import { PACKAGE_ID, RENTAL_REGISTRY_ID, CLOCK_OBJECT_ID } from "@/lib/constants";
 
@@ -22,8 +22,7 @@ export function CompleteRentalModal({ request, onClose, onSuccess }: CompleteRen
     const { mutateAsync: walletSignAndExecute } = useSignAndExecuteTransaction();
     const { address: zkLoginAddress, isConnected: zkLoginConnected, email: zkLoginEmail, signAndExecuteTransaction: zkLoginSignAndExecute } = useZkLogin();
 
-    const mappedAddress = zkLoginEmail ? getAddressFromEmail(zkLoginEmail) : null;
-    const connectedAddress = mappedAddress || (zkLoginConnected ? zkLoginAddress : account?.address);
+    const connectedAddress = zkLoginConnected ? zkLoginAddress : account?.address;
 
     // Get Listing and Apartment
     const getRentalListing = useSiteStore(s => s.getRentalListing);
