@@ -1,0 +1,43 @@
+MIT License
+
+Copyright (c) 2026 Tolga Olguner, Eda Zeynep Büyük, Gökberk Özkan, Caner Nişancı
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+EXCLUSIONS / KAPSAM DIŞI
+
+The MIT license above applies to the source code and technical documentation
+in this repository only. The following academic works are NOT covered by it
+and remain All Rights Reserved:
+
+  - docs/SiteDAO-sunum.pdf  (project presentation / proje sunumu)
+
+Yukarıdaki MIT lisansı yalnızca bu depodaki kaynak kod ve teknik dokümantasyon
+için geçerlidir. Aşağıdaki akademik çalışmalar bu lisansın kapsamı dışındadır ve
+tüm hakları saklıdır:
+
+  - docs/SiteDAO-sunum.pdf  (proje sunumu)
+
+These works may not be copied, distributed, or used as the basis for derivative
+works without the prior written permission of the copyright holder.
+
+Bu çalışmalar, telif hakkı sahibinin önceden yazılı izni olmaksızın
+kopyalanamaz, dağıtılamaz veya türev çalışmalara temel alınamaz.

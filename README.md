@@ -322,4 +322,4 @@ herkesçe düşürülebilmesi senaryolarını kapsar.
 
 ## Lisans
 
-MIT
+MIT — bkz. [LICENSE](LICENSE). Telif ekip üyelerine aittir; `docs/SiteDAO-sunum.pdf` lisans kapsamı dışındadır.
