@@ -157,6 +157,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
+Uygulama **http://localhost:3010** adresinde açılır. zkLogin kullanacaksanız Google
+Cloud Console'da yetkili yönlendirme adresi olarak
+`http://localhost:3010/api/auth/callback/google` kayıtlı olmalıdır; aksi halde Google
+`redirect_uri_mismatch` döndürür.
+
 `.env.local` içinde doldurulması gerekenler:
 
 | Değişken | Ne işe yarar |
