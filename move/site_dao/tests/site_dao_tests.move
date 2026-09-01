@@ -3,9 +3,9 @@
 module site_dao::site_dao_tests {
     use std::string;
     use sui::test_scenario::{Self as ts, Scenario};
-    use sui::coin::{Self, Coin};
+    use sui::coin;
     use sui::sui::SUI;
-    use sui::clock::{Self, Clock};
+    use sui::clock;
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use sui::package::Publisher;
     use sui::transfer_policy::TransferPolicy;
@@ -1116,6 +1116,179 @@ module site_dao::site_dao_tests {
             ts::return_shared(proposal);
             ts::return_shared(registry);
             clock::destroy_for_testing(clock);
+        };
+
+        ts::end(scenario);
+    }
+
+    // ==================== Süresi Dolan Kiralama Testleri ====================
+
+    /// Süresi dolmuş kiralamayı kiracı olmayan biri de kayıttan düşürebilmeli
+    ///
+    /// TenantPass soulbound olduğu için yalnızca kiracı yakabilir; kiracı bunu yapmazsa
+    /// daire sonsuza dek kirada görünürdü.
+    #[test]
+    fun test_suresi_dolan_kiralama_herkesce_dusurulur() {
+        let mut scenario = setup_test();
+
+        mint_apartment_for_owner1(&mut scenario);
+        let apartment_id = owner1_apartment_address(&mut scenario);
+        list_owner1_apartment_for_rent(&mut scenario, 1_000_000_000);
+        request_and_approve(&mut scenario, apartment_id, 6);
+
+        ts::next_tx(&mut scenario, TENANT1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            clock::set_for_testing(&mut clock, 1_000);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+            let mut request = ts::take_shared<RentalRequest>(&scenario);
+            let payment = coin::mint_for_testing<SUI>(1_000_000_000, ts::ctx(&mut scenario));
+            rent_market::rent_apartment(&mut registry, &mut request, payment, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(request);
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        // BUYER1 ne kiraci ne ev sahibi; yine de suresi dolmus kaydi temizleyebilmeli
+        ts::next_tx(&mut scenario, BUYER1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            // 6 ay + 1 ms sonrasi
+            clock::set_for_testing(&mut clock, 1_000 + 6 * 2_592_000_000 + 1);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+
+            let id = object::id_from_address(apartment_id);
+            assert!(rent_market::is_apartment_rented(&registry, id), 0);
+
+            rent_market::release_expired_rental(
+                &mut registry,
+                apartment_id,
+                &clock,
+                ts::ctx(&mut scenario)
+            );
+
+            // Daire artik kirada gorunmemeli, ilan yeniden aktif olmali
+            assert!(!rent_market::is_apartment_rented(&registry, id), 1);
+            let (_owner, _rent, is_active) = rent_market::get_listing_info(&registry, id);
+            assert!(is_active, 2);
+
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        ts::end(scenario);
+    }
+
+    /// Süresi dolmamış kiralama kayıttan düşürülememeli
+    #[test]
+    #[expected_failure(abort_code = rent_market::ETenantPassNotExpired)]
+    fun test_suresi_dolmayan_kiralama_dusurulemez() {
+        let mut scenario = setup_test();
+
+        mint_apartment_for_owner1(&mut scenario);
+        let apartment_id = owner1_apartment_address(&mut scenario);
+        list_owner1_apartment_for_rent(&mut scenario, 1_000_000_000);
+        request_and_approve(&mut scenario, apartment_id, 6);
+
+        ts::next_tx(&mut scenario, TENANT1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            clock::set_for_testing(&mut clock, 1_000);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+            let mut request = ts::take_shared<RentalRequest>(&scenario);
+            let payment = coin::mint_for_testing<SUI>(1_000_000_000, ts::ctx(&mut scenario));
+            rent_market::rent_apartment(&mut registry, &mut request, payment, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(request);
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        // Kira daha bitmedi
+        ts::next_tx(&mut scenario, BUYER1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            clock::set_for_testing(&mut clock, 1_000 + 2_592_000_000);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+
+            rent_market::release_expired_rental(
+                &mut registry,
+                apartment_id,
+                &clock,
+                ts::ctx(&mut scenario)
+            );
+
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        ts::end(scenario);
+    }
+
+    /// Kiralama düşürüldükten sonra ev sahibi ilanı iptal edip daireyi geri alabilmeli
+    ///
+    /// Düzeltmeden önce daire Kiosk'ta kilitli kalıyordu: cancel_listing aktif kiralama
+    /// yüzünden reddediliyor, kiracı da kartı yakmadığı için kayıt hiç temizlenmiyordu.
+    #[test]
+    fun test_dusurulen_kiralamadan_sonra_daire_geri_alinir() {
+        let mut scenario = setup_test();
+
+        mint_apartment_for_owner1(&mut scenario);
+        let apartment_id = owner1_apartment_address(&mut scenario);
+        list_owner1_apartment_for_rent(&mut scenario, 1_000_000_000);
+        request_and_approve(&mut scenario, apartment_id, 6);
+
+        ts::next_tx(&mut scenario, TENANT1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            clock::set_for_testing(&mut clock, 1_000);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+            let mut request = ts::take_shared<RentalRequest>(&scenario);
+            let payment = coin::mint_for_testing<SUI>(1_000_000_000, ts::ctx(&mut scenario));
+            rent_market::rent_apartment(&mut registry, &mut request, payment, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(request);
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        // Kiraci ortadan kayboldu, kartini yakmadi; ev sahibi kaydi kendisi dusuruyor
+        ts::next_tx(&mut scenario, OWNER1);
+        {
+            let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+            clock::set_for_testing(&mut clock, 1_000 + 6 * 2_592_000_000 + 1);
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+            rent_market::release_expired_rental(&mut registry, apartment_id, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
+            clock::destroy_for_testing(clock);
+        };
+
+        // Artik ilan iptal edilip daire Kiosk'tan geri alinabilir
+        ts::next_tx(&mut scenario, OWNER1);
+        {
+            let mut registry = ts::take_shared<RentalRegistry>(&scenario);
+            let policy = ts::take_shared<TransferPolicy<Apartment>>(&scenario);
+            let mut kiosk_obj = ts::take_shared<Kiosk>(&scenario);
+            let kiosk_cap = ts::take_from_sender<KioskOwnerCap>(&scenario);
+
+            rent_market::cancel_listing(
+                &mut registry,
+                &mut kiosk_obj,
+                &kiosk_cap,
+                &policy,
+                apartment_id,
+                ts::ctx(&mut scenario)
+            );
+
+            ts::return_to_sender(&scenario, kiosk_cap);
+            ts::return_shared(kiosk_obj);
+            ts::return_shared(policy);
+            ts::return_shared(registry);
+        };
+
+        ts::next_tx(&mut scenario, OWNER1);
+        {
+            let apt = ts::take_from_sender<Apartment>(&scenario);
+            assert!(object::id_address(&apt) == apartment_id, 0);
+            ts::return_to_sender(&scenario, apt);
         };
 
         ts::end(scenario);

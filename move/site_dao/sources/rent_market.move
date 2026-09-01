@@ -46,8 +46,20 @@ module site_dao::rent_market {
         id: UID,
         /// apartment_id -> RentalListing
         listings: Table<ID, RentalListing>,
-        /// Aktif kiralamalar: apartment_id -> tenant_pass_id
-        active_rentals: Table<ID, ID>
+        /// Aktif kiralamalar: apartment_id -> ActiveRental
+        active_rentals: Table<ID, ActiveRental>
+    }
+
+    /// Aktif kiralama kaydı
+    ///
+    /// Bitiş tarihi burada da tutulur; böylece süresi dolmuş bir kiralamayı kayıttan
+    /// düşürmek için TenantPass nesnesine ihtiyaç kalmaz. TenantPass soulbound olduğu
+    /// için yalnızca kiracının cüzdanından geçirilebilir; kiracı kartı yakmazsa daire
+    /// aksi halde sonsuza dek kirada görünürdü.
+    public struct ActiveRental has store, drop {
+        tenant_pass_id: ID,
+        tenant: address,
+        expiry_date: u64
     }
 
     /// Kiralama ilanı bilgileri
@@ -137,6 +149,13 @@ module site_dao::rent_market {
         apartment_id: ID,
         requester: address,
         approved: bool
+    }
+
+    public struct ExpiredRentalReleased has copy, drop {
+        apartment_id: ID,
+        tenant_pass_id: ID,
+        tenant: address,
+        released_by: address
     }
 
     public struct RentPaid has copy, drop {
@@ -300,7 +319,15 @@ module site_dao::rent_market {
         request.status = REQUEST_COMPLETED;
 
         // Aktif kiralama kaydet
-        table::add(&mut registry.active_rentals, apartment_id, tenant_pass_id);
+        table::add(
+            &mut registry.active_rentals,
+            apartment_id,
+            ActiveRental {
+                tenant_pass_id,
+                tenant: tx_context::sender(ctx),
+                expiry_date
+            }
+        );
 
         event::emit(ApartmentRented {
             apartment_id,
@@ -367,15 +394,15 @@ module site_dao::rent_market {
         registry: &mut RentalRegistry,
         tenant_pass: TenantPass,
         clock: &Clock,
-        ctx: &mut TxContext
+        _ctx: &mut TxContext
     ) {
         let current_time = clock::timestamp_ms(clock);
         
         // Süre kontrolü
         assert!(current_time >= tenant_pass.expiry_date, ETenantPassNotExpired);
         
-        // Sadece kiracı yakabilir
-        assert!(tenant_pass.tenant == tx_context::sender(ctx), ENotTenantPassOwner);
+        // Not: TenantPass soulbound ve değer olarak alınıyor; onu ancak sahibi
+        // geçirebilir, bu yüzden ayrıca bir sahiplik kontrolüne gerek yoktur.
 
         let apartment_id = tenant_pass.apartment_id;
         let tenant_pass_id = object::id(&tenant_pass);
@@ -412,6 +439,44 @@ module site_dao::rent_market {
             rent_paid_until: _
         } = tenant_pass;
         object::delete(id);
+    }
+
+    /// Süresi dolmuş kiralamayı kayıttan düşür - herkes çağırabilir
+    ///
+    /// TenantPass soulbound olduğu için yalnızca kiracı yakabilir. Kiracı bunu yapmazsa
+    /// daire sonsuza dek kirada görünür; ev sahibi ilanı iptal edemez, yeniden kiralayamaz
+    /// ve daire Kiosk'ta kilitli kalır. Bu fonksiyon süre dolduktan sonra kaydı temizler.
+    ///
+    /// Kiracının elindeki kart yakılmaz ama süresi geçtiği için oy kullanmakta da
+    /// kullanılamaz (bkz. is_tenant_pass_valid).
+    public entry fun release_expired_rental(
+        registry: &mut RentalRegistry,
+        apartment_id_bytes: address,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let apartment_id = object::id_from_address(apartment_id_bytes);
+
+        assert!(table::contains(&registry.active_rentals, apartment_id), EApartmentNotListed);
+
+        let rental = table::borrow(&registry.active_rentals, apartment_id);
+        assert!(clock::timestamp_ms(clock) >= rental.expiry_date, ETenantPassNotExpired);
+
+        let ActiveRental { tenant_pass_id, tenant, expiry_date: _ } =
+            table::remove(&mut registry.active_rentals, apartment_id);
+
+        // İlanı tekrar aktif yap
+        if (table::contains(&registry.listings, apartment_id)) {
+            let listing = table::borrow_mut(&mut registry.listings, apartment_id);
+            listing.is_active = true;
+        };
+
+        event::emit(ExpiredRentalReleased {
+            apartment_id,
+            tenant_pass_id,
+            tenant,
+            released_by: tx_context::sender(ctx)
+        });
     }
 
     /// Kiralama ilanını iptal et ve kilitli daireyi ev sahibine geri ver
@@ -573,7 +638,11 @@ module site_dao::rent_market {
 
         // Aktif kiralama kaydet (eğer yoksa)
         if (!table::contains(&registry.active_rentals, apartment_id)) {
-            table::add(&mut registry.active_rentals, apartment_id, tenant_pass_id);
+            table::add(
+                &mut registry.active_rentals,
+                apartment_id,
+                ActiveRental { tenant_pass_id, tenant, expiry_date }
+            );
         };
 
         event::emit(ApartmentRented {
@@ -638,6 +707,11 @@ module site_dao::rent_market {
     /// Talebin ait olduğu daire
     public fun get_request_apartment_id(request: &RentalRequest): ID {
         request.apartment_id
+    }
+
+    /// Aktif kiralamanın bitiş tarihi
+    public fun get_active_rental_expiry(registry: &RentalRegistry, apartment_id: ID): u64 {
+        table::borrow(&registry.active_rentals, apartment_id).expiry_date
     }
 
     /// İlanın peşinat ay sayısı

@@ -11,7 +11,7 @@ Proje tanıtım sunumu: [`docs/SiteDAO-sunum.pdf`](docs/SiteDAO-sunum.pdf)
 
 ## Durum
 
-Dönem projesi olarak teslim edildi. Move sözleşmeleri 25 birim testinin tamamını geçiyor
+Dönem projesi olarak teslim edildi. Move sözleşmeleri 28 birim testinin tamamını geçiyor
 ve Sui testnet'ine yayınlandı; arayüz tamamlandı, tüm site durumunu zincirden okuyor ve
 aşağıdaki tablodaki işlemleri zincire yazıyor.
 
@@ -19,22 +19,23 @@ aşağıdaki tablodaki işlemleri zincire yazıyor.
 
 | | |
 |---|---|
-| Package | `0xb0a9bd38f40e67e0d9251cdb99524c5458c47ed05757c1820fabb0a337caa0d5` |
-| Treasury (shared) | `0x11155bd4c94edea4130632f7cf16c9fb6132598c9086361845ec345d78a38e86` |
-| RentalRegistry (shared) | `0xdb93412d31e90bb23bd21f250814045607351f8bb25dbaea5c52ac5589d4cba3` |
-| ProposalRegistry (shared) | `0xba943f6377b007fd830ee1d3947d848faf7c8014a1d3afe240d348931a707ed6` |
-| TransferPolicy&lt;Apartment&gt; (shared) | `0x370c7df4358c083e822efe8de9bb0b6307f07bc71924c0652ba5a9eef7d61188` |
+| Package | `0x76d372d2a517ac76961532fe5add22d10890fd3fa44bed8ddd524d8544fc7dfd` |
+| Treasury (shared) | `0x51ffce4bb885d3e814a5b6094ac9731922badd73067d9405de3ac29c80adab53` |
+| RentalRegistry (shared) | `0xf5978375012a61c127edaeebc275a46d417a690270257e29b13eec9b2cc5f656` |
+| ProposalRegistry (shared) | `0xf4e522984d5b278c5507d960b32c964c432613c17c7a71863b710464547990bf` |
+| TransferPolicy&lt;Apartment&gt; (shared) | `0x194472d99604f4eb00ff666dd600126bfe74929565aad17ad085734523f938f9` |
 
 Ayrıntılar `move/site_dao/Published.toml` içindedir. `AdminCap`, `GovernanceAdminCap`,
 `Publisher` ve `UpgradeCap` deploy eden adrese gönderilir.
 
-Akışlar testnet üzerinde uçtan uca çalıştırılarak doğrulanmıştır: daire mint, aidat
-ödeme, Kiosk'a kilitleme, ilan iptaliyle kilit çözme, kiralama talebi, onay, kiralama
-ve oylama. Zincirden okuma katmanı da bu canlı veriye karşı doğrulanmıştır.
+Yukarıdaki paket üzerinde tüm akışlar testnet'te uçtan uca çalıştırılarak
+doğrulanmıştır: daire mint, aidat ödeme, Kiosk'a kilitleme, kiralama talebi, onaysız
+talebin reddi, onay, kiralama ve TenantPass basımı, kira ödeme, teklif oluşturma,
+kiradaki daire için ev sahibi oyunun reddi, kiracı oyu, rutin gider ve daire satışı.
+Arayüzün zincirden okuma katmanı da aynı canlı veriye karşı doğrulanmıştır.
 
-Bu doğrulama, yalnızca ölü kod temizliğiyle ayrılan bir önceki yayın üzerinde
-yapılmıştır; yukarıdaki paket üzerinde daire mint işlemi tekrar doğrulanmış, kalan
-akışlar test gazı yetersizliği nedeniyle yinelenmemiştir.
+Tek istisna `release_expired_rental`: doğrulaması kira süresinin gerçekten dolmasını
+gerektirdiğinden yalnızca birim testleriyle kapsanmıştır.
 
 ### Zincir mi, demo mu?
 
@@ -63,6 +64,7 @@ durumu ve oy sayıları olay kayıtları ile paylaşılan nesnelerin dinamik ala
 | Daire satın alma | evet | `sale_market::buy_apartment` — ödeme ve tapu tek işlemde el değiştirir |
 | Rutin giderler | evet | `governance::record_routine_expense` — hazineden ödenir, fatura IPFS'e yüklenir |
 | İlan iptali | evet | `rent_market::cancel_listing` — kilitli daire ev sahibine geri döner |
+| Süresi dolan kiralama | evet | `rent_market::release_expired_rental` — kaydı herkes düşürebilir |
 
 Sözleşme adresleri tanımlı değilken uygulama, 3 blok / 9 daireden oluşan **kurgusal**
 bir demo sitesiyle ("Green Garden Evleri") açılır. Demo verisindeki tüm e-postalar,
@@ -265,6 +267,13 @@ aktif kiralamalar `RentalRegistry`'nin tablolarından, teklifler `ProposalRegist
 çıkarılan daire Kiosk'ta kilitli olduğu için adres sahibi görünmez; bu durumda sahip
 bilgisi ilandan okunur.
 
+**Süresi dolan kiralamanın düşürülmesi.** `TenantPass` soulbound olduğu için yalnızca
+kiracı yakabilir. Kiracı bunu yapmazsa daire kayıtta sonsuza dek kirada görünür; ev
+sahibi ilanı iptal edemez, yeniden kiralayamaz ve daire Kiosk'ta kilitli kalırdı. Bu
+yüzden bitiş tarihi `ActiveRental` kaydında da tutulur ve `release_expired_rental` süre
+dolduktan sonra **herkes tarafından** çağrılabilir. Kart yakılmaz ama süresi geçtiği için
+oy kullanmakta da kullanılamaz.
+
 **Talep–onay akışı.** Kiralama tek adımda yapılmaz: kiracı adayı `request_rental` ile
 paylaşılan bir `RentalRequest` açar, ilan sahibi `approve_rental_request` ile onaylar ve
 kiralama ancak onaylı talep üzerinden tamamlanabilir. Talep tamamlandığında kapanır,
@@ -277,9 +286,10 @@ Aşağıdakiler eksik değil, kapsam kararıdır:
 - **`TransferPolicy<Apartment>` kuralsız oluşturulur.** Komisyon veya kilit süresi gibi
   kurallar tanımlı değildir; site yönetimi bağlamında bir telif payı gerekmez. İhtiyaç
   halinde `TransferPolicyCap` ile sonradan eklenebilir.
-- **Süresi dolan TenantPass elle yakılır.** Sui'de zamanlanmış iş yoktur; bir nesnenin
-  kendiliğinden yok olması mümkün değildir. Kart süresi dolduğunda kiracı
-  `burn_expired_tenant_pass` ile kartı yakar ve daire yeniden kiralanabilir hale gelir.
+- **Süresi dolan TenantPass'ı yalnızca kiracı yakabilir.** Kart soulbound olduğu ve
+  fonksiyona değer olarak geçildiği için Sui'de onu başkasının geçirmesi mümkün değildir.
+  Kiracı kartı yakmasa bile daire kilitli kalmaz: `release_expired_rental` süre dolduktan
+  sonra kaydı düşürür ve ev sahibi daireyi geri alabilir (bkz. Tasarım Notları).
 - **Kiracı adayının iletişim bilgileri zincirde tutulmaz.** Ad, e-posta ve telefon
   kişisel veridir ve herkese açık bir deftere yazılmaz; zincirde yalnızca talep sahibinin
   adresi, süre ve onay durumu bulunur.
@@ -298,9 +308,10 @@ cd move/site_dao
 sui move test
 ```
 
-25 test; aidatın hazineye girmesi, kiracı önceliği, kiracının daire nesnesi olmadan
+28 test; aidatın hazineye girmesi, kiracı önceliği, kiracının daire nesnesi olmadan
 kiralayabilmesi, talep onay akışı, dairenin Kiosk'a kilitlenmesi ve ilan iptalinde geri
-dönmesi, peşinat ve kira ödemesi, daire satışı ve rutin gider senaryolarını kapsar.
+dönmesi, peşinat ve kira ödemesi, daire satışı, rutin gider ve süresi dolan kiralamanın
+herkesçe düşürülebilmesi senaryolarını kapsar.
 
 ## Lisans
 

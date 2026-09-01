@@ -129,6 +129,8 @@ export async function readRentalListings(client: SuiClient): Promise<RentalListi
 }
 
 /// Aktif kiralamalar: daire ID -> TenantPass ID
+///
+/// Kayıt zincirde ActiveRental { tenant_pass_id, tenant, expiry_date } olarak tutulur.
 async function readActiveRentals(client: SuiClient): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   const tableId = await tableIdOf(client, RENTAL_REGISTRY_ID, "active_rentals");
@@ -146,7 +148,8 @@ async function readActiveRentals(client: SuiClient): Promise<Map<string, string>
 
     for (const entry of entries) {
       const f = moveFields(entry);
-      if (f?.name && f?.value) map.set(str(f.name), str(f.value));
+      const passId = f?.value?.fields?.tenant_pass_id;
+      if (f?.name && passId) map.set(str(f.name), str(passId));
     }
 
     cursor = page.hasNextPage ? page.nextCursor : null;

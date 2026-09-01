@@ -379,7 +379,7 @@ module site_dao::governance {
         apartment: &Apartment,
         vote: bool,
         clock: &Clock,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ) {
         let current_time = clock::timestamp_ms(clock);
 
